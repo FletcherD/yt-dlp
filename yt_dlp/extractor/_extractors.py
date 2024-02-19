@@ -601,7 +601,9 @@ from .fancode import (
     FancodeVodIE,
     FancodeLiveIE
 )
-
+from .fansly import (
+    FanslyIE,
+)
 from .faz import FazIE
 from .fc2 import (
     FC2IE,
