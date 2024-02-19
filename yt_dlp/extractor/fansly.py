@@ -102,14 +102,42 @@ class FanslyIE(InfoExtractor):
         }
         return video
 
+    def get_account_infos(self, account_id):
+        account_info = self.call_api('account', account_id, {'ids': account_id})
+        return account_info
+
+    def get_media_infos(self, media_id):
+        media_info = self.call_api('account/media', media_id, {'ids': media_id})
+        return media_info
+
+    def get_collection_as_videos(self):
+        collection_response = self.call_api('account/media/orders/',
+                                            'collection',
+            {'limit': '9999', 'offset': '0'}
+        )
+        account_media_orders = collection_response['accountMediaOrders']
+        videos = []
+        for media_item in account_media_orders:
+            media_item_infos = self.get_media_infos(media_item['accountMediaId'])
+            for media_info in media_item_infos:
+                video = self.get_media_item_as_video(media_info['media'])
+                videos.append(video)
+        return videos
+
+
     def get_post_as_playlist(self, posts_info):
         post_item = posts_info['posts'][0]
+
+        account_info = self.get_account_info(post_item['accountId'])
+
         videos = [self.get_media_item_as_video(account_media_item['media']) for account_media_item in posts_info['accountMedia']]
         playlist = {
             '_type': 'playlist',
             'id': post_item['id'],
             'title': '',
             'description': post_item['content'],
+            'uploader': account_info['displayName'],
+            'uploader_id': account_info['username'],
             'entries': videos
         }
         return playlist
@@ -117,7 +145,15 @@ class FanslyIE(InfoExtractor):
     def _real_extract(self, url):
         post_id = self._match_id(url)
 
-        posts_info = self.call_api('post', post_id, {'ids': post_id})
-        playlist = self.get_post_as_playlist(posts_info)
+        collection_videos = self.get_collection_as_videos()
+        playlist = {
+            '_type': 'playlist',
+            'id': 12345,
+            'title': '',
+            'entries': collection_videos
+        }
+
+        #posts_info = self.call_api('post', post_id, {'ids': post_id})
+        #playlist = self.get_post_as_playlist(posts_info)
 
         return playlist
