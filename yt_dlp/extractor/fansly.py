@@ -66,7 +66,6 @@ class FanslyIE(InfoExtractor):
     def get_variant_as_formats(self, variant_item):
         location = variant_item['locations'][0]
         format_url = location['location']
-        formats = []
 
         if 'metadata' in location:
             metadata = location['metadata']
@@ -76,19 +75,22 @@ class FanslyIE(InfoExtractor):
             self._set_cookie(url_parsed.hostname, 'CloudFront-Policy', metadata.get('Policy', ''), path=url_path)
             self._set_cookie(url_parsed.hostname, 'CloudFront-Signature', metadata.get('Signature', ''), path=url_path)
 
+        formats = []
         ext = determine_ext(format_url)
-        print(ext)
-        if ext == 'm3u8':
+        if ext == 'mpd':
+            formats.extend(self._extract_mpd_formats(
+                format_url, variant_item['id'], mpd_id='dash', fatal=False))
+        elif ext == 'm3u8':
             formats.extend(self._extract_m3u8_formats(
                 format_url, variant_item['id'], 'mp4', entry_protocol='m3u8_native',
                 m3u8_id='hls', fatal=False))
-            
-        formats.append({
-            'url': format_url,
-            'format_id': str(variant_item['type']),
-            'width': variant_item['width'],
-            'height': variant_item['height'],
-        })
+        else:
+            formats.append({
+                'url': format_url,
+                'format_id': str(variant_item['type']),
+                'width': variant_item['width'],
+                'height': variant_item['height'],
+            })
         return formats
 
     def get_media_item_as_video(self, media_item):
